@@ -91,8 +91,17 @@ def main():
     try:
         params = load_params(params_path=str(PROJECT_ROOT / 'params.yaml'))
         test_size = params['data_ingestion']['test_size']
-        data_path = 'https://raw.githubusercontent.com/Jeevoski/datasets/refs/heads/main/spam.csv?token=GHSAT0AAAAAAD5MLDVXSFRPTSISTDB6OMAI2RRNABA'
-        df = load_data(data_url=data_path)
+        # Prefer a local copy if available (faster and avoids remote 404s)
+        local_data = PROJECT_ROOT / 'experiments' / 'spam.csv'
+        if local_data.exists():
+            data_url = str(local_data)
+            logger.debug('Using local dataset at %s', data_url)
+        else:
+            # Fall back to raw GitHub URL (no token/query params)
+            data_url = 'https://raw.githubusercontent.com/Jeevoski/datasets/main/spam.csv'
+            logger.debug('Using remote dataset at %s', data_url)
+
+        df = load_data(data_url=data_url)
         final_df = preprocess_data(df)
         train_data, test_data = train_test_split(final_df, test_size=test_size, random_state=2)
         save_data(train_data, test_data, data_path='./data')
